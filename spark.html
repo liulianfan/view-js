@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8" />
+		<link rel="stylesheet" href="css/run.css" />
+		<title>LuShu Demo</title>
+		<script src="http://api.map.baidu.com/api?v=2.0&ak=CC82b6daa32790ced0d3dff530fbac33"></script>
+	</head>
+
+	<body>
+		<div id="map_canvas" style="width:600px;height:480px"></div>
+		<div id="result" style="float:right;position:absolute;left:700px;top:0;"></div>
+	</body>
+	<script type="text/javascript" src="js/jquery.min.js"></script>
+	<script type="text/javascript" src="js/run.js"></script>
+	<script type="text/javascript" src="js/transform.js"></script>
+	<script type="text/javascript">
+		var car = [{
+			"186947": [{
+				"lng": "121.547374",
+				"lat": "31.228326"
+			}, {
+				"lng": "121.547242",
+				"lat": "31.228385"
+			}, {
+				"lng": "121.547048",
+				"lat": "31.228497"
+			}]
+		}];
+		var wr;
+		var p3, startPosition, endPosition, lushus = {},
+			speed, tmp = [],
+			cid,
+			geo,
+			positions = [],
+			flag = true,
+			index = 0,
+			time = 3000,
+			//数据存放容器
+			dataContainer = [],
+			interval,
+			cars = {},
+			v = 0,
+			tp_obj;
+
+		var map = new BMap.Map("map_canvas"); // 创建Map实例
+		map.centerAndZoom(new BMap.Point(121.536601,31.224249), 18); // 初始化地图,设置中心点坐标和地图级别
+		map.setCurrentCity("上海"); // 设置地图显示的城市 此项是必须设置的
+		map.enableScrollWheelZoom(true); //开启鼠标滚轮缩放
+
+		//获取后台数据并发送到该页面
+		if(typeof(Worker) != undefined) {
+			if(wr == undefined) {
+				wr = new Worker('js/spark.js');
+			}
+			wr.postMessage(getLevelAndPoints(tp_obj, map));
+			
+			wr.onmessage = function(event) {
+				var car_data = event.data;
+				if(car_data.length != 0)
+					dataContainer.push(car_data);
+				console.log(dataContainer)
+			}
+		}
+		
+//		map.addEventListener('zoomend', function() {
+//			if(wr !=undefined)
+//				wr.postMessage(getLevelAndPoints(tp_obj, map))
+//		});
+		map.addEventListener('dragend', function() {
+			if(wr !=undefined)
+				wr.postMessage(getLevelAndPoints(tp_obj, map))
+		});
+
+		setInterval(() => {
+			execute(dataContainer);
+			
+		}, time);
+
+		function getLevelAndPoints(tp_obj, map) {
+			/**
+			 * 通过百度API获取zoom 和 西南，东北方向的经纬度
+			 * 计算西南东北方向的tile
+			 * 返回特定的json格式数据
+			 */
+			if(tp_obj == undefined)
+				tp_obj = TileLnglatTransform.TileLnglatTransformBaidu;
+
+			var level = map.getZoom()
+			var bounds = map.getBounds()
+			var sw = tp_obj.lnglatToTile(bounds.getSouthWest().lng, bounds.getSouthWest().lat, level);
+			var ne = tp_obj.lnglatToTile(bounds.getNorthEast().lng, bounds.getNorthEast().lat, level);
+			console.log(sw)
+			console.log(ne)
+/**
+ * 1.缩放图层，清除上一次层的数据
+ * 2.左右移动时，很多相同的面，不需要缓存，而没有的面需要缓存
+ * 3.开始时请求3个是针对tile，当切换为其它面的时候，因为有了ts，所以不会多请求几个，导致车不动
+ * 4.两车的px相同，忽然又不同，在页面回多出现一辆车，而且在中途有车辆加入，因为已经存在ts，导致车不动
+ */
+			return {
+				"type": "tile",
+				"southWest": [sw.tileX, sw.tileY],
+				"northEast": [ne.tileX, ne.tileY],
+				"level": level
+			};
+		}
+
+		function execute(dataContainer) {
+			//遍历dataContainer对象的id
+			if(!dataContainer ) {
+				return;
+			}
+			geo = dataContainer[index];
+			for(var g in geo) {
+				(function(g) {
+					var lushu;
+					if(lushus.hasOwnProperty(g)) {
+						lushu = lushus[g];
+						//清除marker
+//						lushu._map.removeOverlay(lushu._marker);
+//						lushus.
+					}
+					positions = geo[g].concat();
+
+					lushu = createLushu(positions, g, lushu);
+					lushus[lushu._opts.id] = lushu;
+				})(g);
+			}
+			if(dataContainer.length >= 4) {
+				dataContainer.splice(0, 2);
+				index -= 2;
+			}
+			index++;
+		}
+
+		function createLushu(point, id, lushu) {
+
+			var arrPois = [],
+				arrPois = arrPois.concat(point);
+			if(lushu == null || undefined) {
+				lushu = new BMapLib.LuShu(map, arrPois, {
+					defaultContent: "",
+					autoView: false, //是否开启自动视野调整，如果开启那么路书在运动过程中会根据视野自动调整
+					icon: new BMap.Icon('img/car2.png', {
+						width: 52 / 2,
+						height: 26 / 2
+					}, {
+						anchor: new BMap.Size(8, 13),
+						imageSize: {
+							width: 52 / 2,
+							height: 26 / 2
+						}
+					}),
+					speed: 0,
+					id: id,
+					enableRotation: true, //是否设置marker随着道路的走向进行旋转
+					landmarkPois: []
+				});
+				lushu.start();
+			} else {
+				lushu._path.push(arrPois[0]);
+				console.log(lushu._path[lushu.i])
+			}
+			return lushu;
+		}
+	</script>
+
+</html>
