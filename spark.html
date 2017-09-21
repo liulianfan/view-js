@@ -3,7 +3,7 @@
 
 	<head>
 		<meta charset="utf-8" />
-		<link rel="stylesheet" href="css/run.css" />
+		<!-- <link rel="stylesheet" href="css/run.css" /> -->
 		<title>LuShu Demo</title>
 		<script src="http://api.map.baidu.com/api?v=2.0&ak=CC82b6daa32790ced0d3dff530fbac33"></script>
 	</head>
@@ -12,9 +12,9 @@
 		<div id="map_canvas" style="width:600px;height:480px"></div>
 		<div id="result" style="float:right;position:absolute;left:700px;top:0;"></div>
 	</body>
-	<script type="text/javascript" src="js/jquery.min.js"></script>
-	<script type="text/javascript" src="js/run.js"></script>
-	<script type="text/javascript" src="js/transform.js"></script>
+	<script type="text/javascript" src="http://code.jquery.com/jquery-3.2.1.min.js"></script>
+	<script type="text/javascript" src="run.js"></script>
+	<script type="text/javascript" src="transform.js"></script>
 	<script type="text/javascript">
 		var car = [{
 			"186947": [{
@@ -52,7 +52,7 @@
 		//获取后台数据并发送到该页面
 		if(typeof(Worker) != undefined) {
 			if(wr == undefined) {
-				wr = new Worker('js/spark.js');
+				wr = new Worker('./spark.js');
 			}
 			wr.postMessage(getLevelAndPoints(tp_obj, map));
 			

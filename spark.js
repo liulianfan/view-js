@@ -68,7 +68,7 @@ function matchCar(data) {
 
 var geo, timer, old, ts;
 //http://localhost:8000/onlinepoints?type=tile&x=6605&y=1776&level=15
-var url = "http://localhost:8000/onlinepoints"
+var url = "http://106.15.57.39:9876/onlinepoints";
 
 function getResource(index, points) {
 	if(points != undefined)
